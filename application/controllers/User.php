@@ -86,7 +86,7 @@ class User extends CI_Controller {
         if (!empty($this->session->userdata('USER_ID'))) {
             redirect('User/Panel');
         }        
-    }
+    }    
 
 	public function fazerLogin()
 	{               
@@ -142,6 +142,30 @@ class User extends CI_Controller {
         }
         
     }
+
+    public function exibirWebcam(){
+        $this->load->view("pages/webcam");
+    }
+
+    public function capturarFoto(){
+        $img = $_POST['image'];
+        $folderPath = "fotos/";
+        
+        $id = 5; //Simula o id do visitante
+        
+        $image_parts = explode(";base64,", $img);
+        $image_type_aux = explode("image/", $image_parts[0]);
+        $image_type = $image_type_aux[1];
+    
+        $image_base64 = base64_decode($image_parts[1]);
+        $fileName =  'visitante_'.$id.'.png';
+    
+        $file = $folderPath . $fileName;
+        file_put_contents($file, $image_base64);
+    
+        print_r($fileName);
+    }
+
     
     /**
      * User Logout
