@@ -2,24 +2,91 @@
 
 class User extends CI_Controller {
 
-    public function __construct() {
-        parent::__construct();
-        // $this->load->library('form_validation');
-        $this->form_validation->set_error_delimiters('<p class="invalid-feedback">', '</p>');
-        
-    }
     public function index()
 	{
-        /*
-		$data['page_title'] = "Home Page";
-		$this->load->view('_Layout/home/header.php', $data); // Header File
-		$this->load->view('user/fazerLogin'); // Main File (Body)
-        $this->load->view('_Layout/home/footer.php'); // Footer File
-        */
-
-       //s $this->panel();
-       $this->panel();
+        if (empty($this->session->userdata('USER_ID'))) {
+            redirect('user/fazerLogin');
+        }else{
+            redirect('lugares');
+        }
 	}
+    
+    /**
+     * User Login
+     */    
+
+	public function fazerLogin()
+	{                       
+        if (!empty($this->session->userdata('USER_ID'))) {
+            redirect('lugares');
+        }
+
+        $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
+        $this->form_validation->set_rules('password', 'Password', 'required');
+
+        if ($this->form_validation->run() == FALSE)
+        {
+            $data['page_title'] = "User Login";
+            $this->load->view('_Layout/home/header.php', $data); // Header File
+            $this->load->view("user/login");
+            $this->load->view('_Layout/home/footer.php'); // Footer File
+        }
+        else
+        {
+            $login_data = array(
+                'email' => $this->input->post('email', TRUE),
+                'password' => $this->input->post('password', TRUE),
+            );
+
+            /**
+             * Load User Model
+             */
+            $this->load->model('User_model', 'UserModel');
+            $result = $this->UserModel->check_login($login_data);
+
+            if (!empty($result['status']) && $result['status'] === TRUE) {
+
+                /**
+                 * Create Session
+                 * -----------------
+                 * First Load Session Library
+                 */
+                $session_array = array(
+                    'USER_ID'  => $result['data']->id,
+                    'USER_NAME'  => $result['data']->fullname,
+                    'USERNAME'  => $result['data']->username,
+                    'USER_EMAIL' => $result['data']->email,
+                    'IS_ACTIVE'  => $result['data']->is_active,
+                );
+                
+                $this->session->set_userdata($session_array);
+
+                $this->session->set_flashdata('success_flashData', 'Login Success');
+                redirect('Lugares');
+
+            } else {
+
+                $this->session->set_flashdata('error_flashData', 'Invalid Email/Password.');
+                redirect('User/fazerLogin');
+            }
+        }
+        
+    }    
+
+    
+    /**
+     * User Logout
+     */
+    public function logout() {
+
+        /**
+         * Remove Session Data
+         */
+        $remove_sessions = array('USER_ID', 'USERNAME','USER_EMAIL','IS_ACTIVE', 'USER_NAME');
+        $this->session->unset_userdata($remove_sessions);
+
+        redirect('User/fazerLogin');
+    }
 
     /**
      * User Registration
@@ -77,122 +144,5 @@ class User extends CI_Controller {
 
             }
         }
-    }
-
-    /**
-     * User Login
-     */
-    public function verificarSessao(){
-        if (!empty($this->session->userdata('USER_ID'))) {
-            redirect('User/Panel');
-        }        
-    }    
-
-	public function fazerLogin()
-	{               
-        $this->verificarSessao();
-        $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
-        $this->form_validation->set_rules('password', 'Password', 'required');
-
-        if ($this->form_validation->run() == FALSE)
-        {
-            $data['page_title'] = "User Login";
-            $this->load->view('_Layout/home/header.php', $data); // Header File
-            $this->load->view("user/login");
-            $this->load->view('_Layout/home/footer.php'); // Footer File
-        }
-        else
-        {
-            $login_data = array(
-                'email' => $this->input->post('email', TRUE),
-                'password' => $this->input->post('password', TRUE),
-            );
-
-            /**
-             * Load User Model
-             */
-            $this->load->model('User_model', 'UserModel');
-            $result = $this->UserModel->check_login($login_data);
-
-            if (!empty($result['status']) && $result['status'] === TRUE) {
-
-                /**
-                 * Create Session
-                 * -----------------
-                 * First Load Session Library
-                 */
-                $session_array = array(
-                    'USER_ID'  => $result['data']->id,
-                    'USER_NAME'  => $result['data']->fullname,
-                    'USERNAME'  => $result['data']->username,
-                    'USER_EMAIL' => $result['data']->email,
-                    'IS_ACTIVE'  => $result['data']->is_active,
-                );
-                
-                $this->session->set_userdata($session_array);
-
-                $this->session->set_flashdata('success_flashData', 'Login Success');
-                redirect('User/Panel');
-
-            } else {
-
-                $this->session->set_flashdata('error_flashData', 'Invalid Email/Password.');
-                redirect('User/fazerLogin');
-            }
-        }
-        
-    }
-
-    public function exibirWebcam(){
-        $this->load->view("pages/webcam");
-    }
-
-    public function capturarFoto(){
-        $img = $_POST['image'];
-        $folderPath = "fotos/";
-        
-        $id = 5; //Simula o id do visitante
-        
-        $image_parts = explode(";base64,", $img);
-        $image_type_aux = explode("image/", $image_parts[0]);
-        $image_type = $image_type_aux[1];
-    
-        $image_base64 = base64_decode($image_parts[1]);
-        $fileName =  'visitante_'.$id.'.png';
-    
-        $file = $folderPath . $fileName;
-        file_put_contents($file, $image_base64);
-    
-        print_r($fileName);
-    }
-
-    
-    /**
-     * User Logout
-     */
-    public function logout() {
-
-        /**
-         * Remove Session Data
-         */
-        $remove_sessions = array('USER_ID', 'USERNAME','USER_EMAIL','IS_ACTIVE', 'USER_NAME');
-        $this->session->unset_userdata($remove_sessions);
-
-        redirect('User/fazerLogin');
-    }
-
-    /**
-     * User Panel
-     */
-    public function panel() {
-
-        if (empty($this->session->userdata('USER_ID'))) {
-            redirect('user/fazerLogin');
-        }
-
-        $data['page_title'] = "Welcome to User Panel";
-        $this->load->view('_Layout/home/header.php', $data); // Header File
-        $this->load->view('user/panel.php');
-        $this->load->view('_Layout/home/footer.php'); // Footer File
     }
 }
